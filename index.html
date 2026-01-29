@@ -1,0 +1,824 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Insomnia: La estrella mas brillante</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            background: #000;
+            color: #00ff00;
+            font-family: 'Courier New', monospace;
+            overflow-x: hidden;
+            transition: background 2s ease;
+        }
+
+        #terminal {
+            min-height: 100vh;
+            padding: 20px;
+            background: #000;
+            position: relative;
+            transition: opacity 2s ease;
+        }
+
+        #terminal::before {
+            content: '';
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(transparent 50%, rgba(0, 255, 0, 0.03) 50%);
+            background-size: 100% 4px;
+            pointer-events: none;
+            z-index: 1;
+            animation: scanline 8s linear infinite;
+        }
+
+        @keyframes scanline {
+            0% { transform: translateY(0); }
+            100% { transform: translateY(100vh); }
+        }
+
+        #terminal::after {
+            content: '';
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 255, 0, 0.02);
+            pointer-events: none;
+            z-index: 1;
+            animation: flicker 0.15s infinite;
+        }
+
+        @keyframes flicker {
+            0% { opacity: 0.97; }
+            50% { opacity: 1; }
+            100% { opacity: 0.97; }
+        }
+
+        .content {
+            max-width: 800px;
+            margin: 0 auto;
+            position: relative;
+            z-index: 2;
+        }
+
+        .scene {
+            display: none;
+            animation: fadeIn 1s ease;
+        }
+
+        .scene.active {
+            display: block;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .ascii-art {
+            text-align: center;
+            margin: 20px 0;
+            font-size: 20px;
+            line-height: 1;
+            text-shadow: 0 0 10px #00ff00;
+        }
+
+        .title {
+            text-align: center;
+            font-size: 24px;
+            margin: 30px 0;
+            text-shadow: 0 0 20px #00ff00;
+            letter-spacing: 2px;
+        }
+
+        .story-text {
+            font-size: 16px;
+            line-height: 1.8;
+            margin: 20px 0;
+            text-shadow: 0 0 5px #00ff00;
+        }
+
+        .choices {
+            margin: 30px 0;
+        }
+
+        .choice {
+            display: block;
+            padding: 15px 20px;
+            margin: 10px 0;
+            background: rgba(0, 255, 0, 0.1);
+            border: 2px solid #00ff00;
+            color: #00ff00;
+            text-decoration: none;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-size: 16px;
+            text-align: left;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .choice::before {
+            content: '> ';
+            font-weight: bold;
+        }
+
+        .choice:hover {
+            background: rgba(0, 255, 0, 0.3);
+            padding-left: 30px;
+            box-shadow: 0 0 20px rgba(0, 255, 0, 0.5);
+            transform: translateX(5px);
+        }
+
+        .choice.correct {
+            border-color: #00ff00;
+        }
+
+        .choice.wrong {
+            border-color: #ff0000;
+            color: #ff0000;
+        }
+
+        .result {
+            display: none;
+            margin: 30px 0;
+            padding: 20px;
+            border-left: 4px solid #00ff00;
+            background: rgba(0, 255, 0, 0.05);
+        }
+
+        .result.show {
+            display: block;
+            animation: fadeIn 1s ease;
+        }
+
+        .game-over {
+            color: #ff0000;
+            text-shadow: 0 0 20px #ff0000;
+            text-align: center;
+            font-size: 32px;
+            margin: 40px 0;
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        .continue-btn {
+            display: none;
+            margin: 30px auto;
+            padding: 15px 40px;
+            background: transparent;
+            border: 2px solid #00ff00;
+            color: #00ff00;
+            font-family: 'Courier New', monospace;
+            font-size: 18px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-align: center;
+            width: fit-content;
+        }
+
+        .continue-btn:hover {
+            background: rgba(0, 255, 0, 0.3);
+            box-shadow: 0 0 20px rgba(0, 255, 0, 0.5);
+        }
+
+        .continue-btn.show {
+            display: block;
+        }
+
+        /* FINAL SCENE - STARRY SKY */
+        #starry-sky {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100vh;
+            background: linear-gradient(to bottom, #000428, #004e92);
+            z-index: 1000;
+        }
+
+        #starry-sky.active {
+            display: block;
+            animation: skyFadeIn 3s ease;
+        }
+
+        @keyframes skyFadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        .star {
+            position: absolute;
+            background: white;
+            border-radius: 50%;
+            animation: twinkle 3s infinite;
+        }
+
+        @keyframes twinkle {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.3; }
+        }
+
+        #sirio {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 100px;
+            height: 100px;
+            background: radial-gradient(circle, #fff 0%, #a8e6ff 30%, transparent 70%);
+            border-radius: 50%;
+            box-shadow: 
+                0 0 60px #fff,
+                0 0 100px #a8e6ff,
+                0 0 140px #4dd0ff;
+            animation: sirius-glow 3s ease-in-out infinite;
+        }
+
+        @keyframes sirius-glow {
+            0%, 100% { 
+                transform: translate(-50%, -50%) scale(1);
+                opacity: 1;
+            }
+            50% { 
+                transform: translate(-50%, -50%) scale(1.1);
+                opacity: 0.9;
+            }
+        }
+
+        .final-text {
+            position: absolute;
+            bottom: 15%;
+            left: 50%;
+            transform: translateX(-50%);
+            text-align: center;
+            color: #fff;
+            font-size: 28px;
+            text-shadow: 0 0 20px rgba(255, 255, 255, 0.8);
+            animation: textFadeIn 4s ease 2s forwards;
+            opacity: 0;
+            width: 90%;
+            max-width: 600px;
+        }
+
+        @keyframes textFadeIn {
+            to { opacity: 1; }
+        }
+
+        .end-text {
+            position: absolute;
+            bottom: 5%;
+            left: 50%;
+            transform: translateX(-50%);
+            text-align: center;
+            color: #a8e6ff;
+            font-size: 20px;
+            animation: textFadeIn 4s ease 5s forwards;
+            opacity: 0;
+        }
+
+        .mist {
+            position: absolute;
+            top: 40%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 300px;
+            height: 300px;
+            background: radial-gradient(circle, rgba(168, 230, 255, 0.2) 0%, transparent 70%);
+            border-radius: 50%;
+            animation: mist-float 6s ease-in-out infinite;
+        }
+
+        @keyframes mist-float {
+            0%, 100% { transform: translate(-50%, -50%) scale(1); }
+            50% { transform: translate(-50%, -50%) scale(1.2); }
+        }
+
+        /* Mobile responsiveness */
+        @media (max-width: 768px) {
+            .title {
+                font-size: 20px;
+            }
+
+            .story-text {
+                font-size: 14px;
+            }
+
+            .choice {
+                font-size: 14px;
+                padding: 12px 15px;
+            }
+
+            .ascii-art {
+                font-size: 16px;
+            }
+
+            #sirio {
+                width: 80px;
+                height: 80px;
+            }
+
+            .final-text {
+                font-size: 20px;
+            }
+
+            .end-text {
+                font-size: 16px;
+            }
+        }
+
+        @media (max-width: 480px) {
+            #terminal {
+                padding: 15px;
+            }
+
+            .title {
+                font-size: 18px;
+            }
+
+            .story-text {
+                font-size: 13px;
+            }
+
+            .choice {
+                font-size: 13px;
+                padding: 10px 12px;
+            }
+
+            .ascii-art {
+                font-size: 14px;
+            }
+
+            .final-text {
+                font-size: 18px;
+                bottom: 20%;
+            }
+
+            .end-text {
+                font-size: 14px;
+            }
+        }
+
+        .typing {
+            overflow: hidden;
+            white-space: pre-wrap;
+            animation: typing 2s steps(40);
+        }
+
+        @keyframes typing {
+            from { max-height: 0; }
+            to { max-height: 1000px; }
+        }
+    </style>
+</head>
+<body>
+    <div id="terminal">
+        <div class="content">
+            <!-- SCENE 1 -->
+            <div class="scene active" id="scene1">
+                <div class="ascii-art">
+    _____ _____ _____ _____ _____ _____ 
+   |     |   __|     |   __|   | |  _  |
+   |  |  |__   |   --|   __| | | |     |
+   |_____|_____|_____|_____|_|___|__|__|
+                </div>
+                <div class="title">═══ ESCENA 1 — NACER ═══</div>
+                <div class="story-text typing">
+Llegas al mundo sin pedir permiso.<br>
+Te dicen que nacer es un milagro, pero para ti fue una <strong>apuesta perdida</strong>: tu cuerpo frágil, la respiración incierta, médicos dudando.<br><br>
+
+Antes incluso de abrir los ojos, te cargan un nombre que no te pertenece. Un nombre heredado de alguien que no está. Un molde que no quieres habitar.<br><br>
+
+Creces rápido, pero solo por fuera.<br>
+Tu madre trabaja hasta el cansancio. Las ausencias se vuelven rutina.<br>
+Alguien tiene que cuidarte.<br><br>
+
+<strong>¿Con quién decides quedarte?</strong>
+                </div>
+                <div class="choices">
+                    <div class="choice correct" onclick="selectChoice(1, 1, true)">Abuela</div>
+                    <div class="choice" onclick="selectChoice(1, 2, false)">Alguien asi sobreviviria?</div>
+                    <div class="choice" onclick="selectChoice(1, 3, false)">Vecinos, promesa de calma</div>
+                    <div class="choice" onclick="selectChoice(1, 4, false)">Quedarte solo, aprender antes de tiempo</div>
+                </div>
+                <div class="result" id="result1-correct">
+                    <div class="story-text">
+Tu abuela y tu tía te cuidan. La casa está llena… pero no de paz.<br>
+Gritos que rompen el aire. Discusiones que no entiendes, pero que se clavan igual.<br><br>
+
+Una tarde: cuchillos, amenazas, tu madre en el suelo.<br>
+No ves sangre. No sabes si fue un golpe o un desmayo.<br>
+Pero ahí nace algo nuevo:<br>
+un <strong>cosquilleo en el pecho</strong>, una alarma muda que aprenderás a ignorar.
+                    </div>
+                    <button class="continue-btn" onclick="nextScene(2)">CONTINUAR ></button>
+                </div>
+                <div class="result" id="result1-wrong">
+                    <div class="game-over">✗ PIERDES ✗</div>
+                    <div class="story-text" style="color: #ff0000; text-shadow: 0 0 10px #ff0000;">
+Creces sin testigos. Sin memoria compartida.<br>
+El vacío se vuelve tu idioma nativo.<br><br>
+<strong>GAME OVER</strong>
+                    </div>
+                    <button class="continue-btn" onclick="location.reload()">REINTENTAR</button>
+                </div>
+            </div>
+
+            <!-- SCENE 2 -->
+            <div class="scene" id="scene2">
+                <div class="ascii-art">
+      웃  웃
+     /|\ /|\
+     / \ / \
+                </div>
+                <div class="title">═══ ESCENA 2 — EL KÍNDER ═══</div>
+                <div class="story-text">
+Entras al kínder creyendo que el mundo será simple.<br>
+Conoces a <strong>Manuel Aceituno</strong>, pequeño, frágil, tu primer mejor amigo.<br>
+Te quiere, pero algo en su mirada siempre te pone un escalón arriba… y a él abajo.<br><br>
+
+Luego aparece <strong>Phantom</strong>.<br>
+No se parece a ti: <strong>es</strong> como tú.<br>
+Ríen igual, callan igual, entienden sin hablar.<br><br>
+
+Los años pasan.<br>
+La madre de Phantom muere. Su mundo se quiebra.<br><br>
+
+<strong>¿Qué decides hacer?</strong>
+                </div>
+                <div class="choices">
+                    <div class="choice correct" onclick="selectChoice(2, 1, true)">Tratar de ayudarle</div>
+                    <div class="choice" onclick="selectChoice(2, 2, false)">Fingir que no es tu problema</div>
+                    <div class="choice" onclick="selectChoice(2, 3, false)">Cargar con todo tú solo</div>
+                    <div class="choice" onclick="selectChoice(2, 4, false)">Hundirte con él</div>
+                </div>
+                <div class="result" id="result2-correct">
+                    <div class="story-text">
+Intentas ayudarle. Fallas.<br>
+No porque no quieras… sino porque no sabes cómo.<br>
+Phantom cae en las drogas.<br>
+Tú te alejas.<br><br>
+
+No por odio, sino por supervivencia.<br>
+Aprendes que <strong>amar no siempre salva</strong>.
+                    </div>
+                    <button class="continue-btn" onclick="nextScene(3)">CONTINUAR ></button>
+                </div>
+                <div class="result" id="result2-wrong">
+                    <div class="game-over">✗ PIERDES ✗</div>
+                    <div class="story-text" style="color: #ff0000; text-shadow: 0 0 10px #ff0000;">
+O te consumes con él, o lo abandonas sin despedida.<br>
+En ambos casos, la culpa se queda.<br><br>
+<strong>GAME OVER</strong>
+                    </div>
+                    <button class="continue-btn" onclick="location.reload()">REINTENTAR</button>
+                </div>
+            </div>
+
+            <!-- SCENE 3 -->
+            <div class="scene" id="scene3">
+                <div class="ascii-art">
+       웃
+      /|\ 
+      / \ 
+    ________
+                </div>
+                <div class="title">═══ ESCENA 3 — LUCAS ═══</div>
+                <div class="story-text">
+Nace Lucas.<br>
+Y con él, una parte nueva de tu corazón.<br>
+Ríe fácil. Confía ciegamente. Te sigue como si fueras invencible.<br><br>
+
+Un día, todo se rompe.<br>
+Lucas rompe algo.<br>
+Su madre lo patea en la espalda baja. Una vez. Dos. Tres.<br>
+Él grita. Un grito que no se olvida.<br><br>
+
+El cosquilleo vuelve. Más fuerte. Te paraliza.<br><br>
+
+<strong>¿Qué haces?</strong>
+                </div>
+                <div class="choices">
+                    <div class="choice correct" onclick="selectChoice(3, 1, true)">Controlarte y reprimirte</div>
+                    <div class="choice" onclick="selectChoice(3, 2, false)">Intervenir a golpes</div>
+                    <div class="choice" onclick="selectChoice(3, 3, false)">Gritar sin actuar</div>
+                    <div class="choice" onclick="selectChoice(3, 4, false)">Salir corriendo</div>
+                </div>
+                <div class="result" id="result3-correct">
+                    <div class="story-text">
+Te quedas quieto.<br>
+La escena se graba para siempre.<br>
+Los gritos. El sonido seco.<br>
+Y la certeza más cruel:<br>
+<strong>no hiciste nada</strong>.<br><br>
+
+No porque no amaras…<br>
+sino porque el miedo ganó.
+                    </div>
+                    <button class="continue-btn" onclick="nextScene(4)">CONTINUAR ></button>
+                </div>
+                <div class="result" id="result3-wrong">
+                    <div class="game-over">✗ PIERDES ✗</div>
+                    <div class="story-text" style="color: #ff0000; text-shadow: 0 0 10px #ff0000;">
+Cualquier acción impulsiva destruye algo más.<br>
+Aprendes que el daño también puede venir de ti.<br><br>
+<strong>GAME OVER</strong>
+                    </div>
+                    <button class="continue-btn" onclick="location.reload()">REINTENTAR</button>
+                </div>
+            </div>
+
+            <!-- SCENE 4 -->
+            <div class="scene" id="scene4">
+                <div class="ascii-art">
+        *
+       /|\
+      / | \
+     *  웃  *
+       /|\
+       / \
+                </div>
+                <div class="title">═══ ESCENA 4 — PANDEMIA ═══</div>
+                <div class="story-text">
+El mundo se encierra.<br>
+Y entonces aparece <strong>ella</strong>.<br>
+Una luz imposible.<br>
+Una estrella que no quema, que abriga.<br><br>
+
+No quieres aceptarlo.<br>
+Pero ahí está: <strong>Sirio</strong>, la estrella más brillante del cielo.<br>
+Brilla incluso cuando tú no puedes.<br><br>
+
+<strong>¿Qué haces?</strong>
+                </div>
+                <div class="choices">
+                    <div class="choice correct" onclick="selectChoice(4, 1, true)">Alejarte con la promesa de volver</div>
+                    <div class="choice" onclick="selectChoice(4, 2, false)">Aferrarte desesperadamente</div>
+                    <div class="choice" onclick="selectChoice(4, 3, false)">Fingir que no sientes nada</div>
+                    <div class="choice" onclick="selectChoice(4, 4, false)">Apagarla antes de que te vea roto</div>
+                </div>
+                <div class="result" id="result4-correct">
+                    <div class="story-text">
+Te alejas.<br>
+Duele. Quema.<br>
+La extrañas cada noche.<br>
+Pero crees que estar cerca tuyo la lastima.<br><br>
+
+Prometes volver.<br>
+No hoy.<br>
+No así.<br>
+Pero <strong>algún día</strong>.
+                    </div>
+                    <button class="continue-btn" onclick="nextScene(5)">CONTINUAR ></button>
+                </div>
+                <div class="result" id="result4-wrong">
+                    <div class="game-over">✗ PIERDES ✗</div>
+                    <div class="story-text" style="color: #ff0000; text-shadow: 0 0 10px #ff0000;">
+O la consumes, o la pierdes para siempre.<br><br>
+<strong>GAME OVER</strong>
+                    </div>
+                    <button class="continue-btn" onclick="location.reload()">REINTENTAR</button>
+                </div>
+            </div>
+
+            <!-- SCENE 5 -->
+            <div class="scene" id="scene5">
+                <div class="ascii-art">
+      ___
+     |   |
+     | 웃 |
+     |___|
+    R.I.P.
+                </div>
+                <div class="title">═══ ESCENA 5 — LA MUERTE ═══</div>
+                <div class="story-text">
+Muere uno de los hombres que más admirabas.<br>
+Nunca te despediste.<br>
+Querías ser fuerte como él.<br><br>
+
+Fue en pandemia, y ahora no puedes dormir.<br><br>
+
+<strong>¿Qué haces?</strong>
+                </div>
+                <div class="choices">
+                    <div class="choice correct" onclick="selectChoice(5, 1, true)">Ser débil y continuar así</div>
+                    <div class="choice" onclick="selectChoice(5, 2, false)">Pedir ayuda</div>
+                    <div class="choice" onclick="selectChoice(5, 3, false)">Fingir que estás bien</div>
+                    <div class="choice" onclick="selectChoice(5, 4, false)">Anestesiarte</div>
+                </div>
+                <div class="result" id="result5-correct">
+                    <div class="story-text">
+No duermes.<br>
+Las notas caen.<br>
+Las sombras aparecen.<br>
+A veces escuchas tu nombre.<br>
+A veces gritos.<br><br>
+
+Aprendes que <strong>el cuerpo también se quiebra</strong>.
+                    </div>
+                    <button class="continue-btn" onclick="nextScene(6)">CONTINUAR ></button>
+                </div>
+                <div class="result" id="result5-wrong">
+                    <div class="game-over">✗ PIERDES ✗</div>
+                    <div class="story-text" style="color: #ff0000; text-shadow: 0 0 10px #ff0000;">
+La negación te devora más rápido que el dolor.<br><br>
+<strong>GAME OVER</strong>
+                    </div>
+                    <button class="continue-btn" onclick="location.reload()">REINTENTAR</button>
+                </div>
+            </div>
+
+            <!-- SCENE 6 -->
+            <div class="scene" id="scene6">
+                <div class="ascii-art">
+     _____
+    |     |
+    | 웃   |
+    |_____|
+   /  R.I.P.  \
+  /___________\
+                </div>
+                <div class="title">═══ ESCENA 6 — EL FUNERAL ═══</div>
+                <div class="story-text">
+Años de discusiones, de insultos.<br>
+Te sientes como un estorbo. Defectuoso. te han dicho Trastornado.<br><br>
+
+Cerca del 18 de septiembre, muere la única persona que apostó por ti.<br>
+Vas a su funeral.<br><br>
+
+<strong>¿Qué haces?</strong>
+                </div>
+                <div class="choices">
+                    <div class="choice correct" onclick="selectChoice(6, 1, true)">Quedarte callado</div>
+                    <div class="choice" onclick="selectChoice(6, 2, false)">Hablar aunque tiemble la voz</div>
+                    <div class="choice" onclick="selectChoice(6, 3, false)">Irte antes del final</div>
+                    <div class="choice" onclick="selectChoice(6, 4, false)">Culparte en silencio</div>
+                </div>
+                <div class="result" id="result6-correct">
+                    <div class="story-text">
+No puedes hablar.<br>
+Las palabras no salen.<br>
+El peso queda contigo.<br><br>
+
+Pero al mirar el cielo…<br>
+<strong>Sirio vuelve a brillar.</strong><br>
+Más fuerte que nunca.
+                    </div>
+                    <button class="continue-btn" onclick="nextScene(7)">CONTINUAR ></button>
+                </div>
+                <div class="result" id="result6-wrong">
+                    <div class="game-over">✗ PIERDES ✗</div>
+                    <div class="story-text" style="color: #ff0000; text-shadow: 0 0 10px #ff0000;">
+O te rompes frente a todos, o te vas sin cerrar nada.<br><br>
+<strong>GAME OVER</strong>
+                    </div>
+                    <button class="continue-btn" onclick="location.reload()">REINTENTAR</button>
+                </div>
+            </div>
+
+            <!-- SCENE 7 -->
+            <div class="scene" id="scene7">
+                <div class="ascii-art">
+        . * .
+      *   ★   *
+    .     |     .
+        웃
+       /|\
+       / \
+                </div>
+                <div class="title">═══ ESCENA 7 — FINAL ═══</div>
+                <div class="story-text">
+A veces no la ves.<br>
+A veces crees haberla perdido por tus propios errores.<br>
+Pero levantas la vista…<br>
+y ahí está.<br><br>
+
+<strong>La estrella más brillante de tu cielo.</strong><br><br>
+
+<strong>¿Qué haces?</strong>
+                </div>
+                <div class="choices">
+                    <div class="choice correct" onclick="selectChoice(7, 1, true)">Hablarle</div>
+                    <div class="choice" onclick="selectChoice(7, 2, false)">Mirarla en silencio</div>
+                    <div class="choice" onclick="selectChoice(7, 3, false)">Darte la vuelta</div>
+                    <div class="choice" onclick="selectChoice(7, 4, false)">Apagar la noche</div>
+                </div>
+                <div class="result" id="result7-correct">
+                    <div class="story-text">
+Le hablas:<br><br>
+
+<em>"Gracias por ser mi Sirio.<br>
+La estrella que no se apagó cuando yo sí.<br>
+La que brilló incluso cuando me sentí indigno de mirar el cielo.<br>
+Si yo soy ceniza, tú fuiste el fuego que me sostuvo.<br>
+Prometo seguir avanzando, aunque sea lento,<br>
+aunque sea roto,<br>
+hasta poder caminar bajo tu luz sin bajar la mirada.<br>
+Eres la estrella más brillante de mi cielo.<br>
+Siempre."</em>
+                    </div>
+                    <button class="continue-btn" onclick="showFinalSky()">MIRAR EL CIELO ></button>
+                </div>
+                <div class="result" id="result7-wrong">
+                    <div class="game-over">✗ PIERDES ✗</div>
+                    <div class="story-text" style="color: #ff0000; text-shadow: 0 0 10px #ff0000;">
+El silencio lo consume todo.<br>
+La luz se apaga.<br><br>
+<strong>GAME OVER</strong>
+                    </div>
+                    <button class="continue-btn" onclick="location.reload()">REINTENTAR</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- STARRY SKY FINAL -->
+    <div id="starry-sky">
+        <div class="mist"></div>
+        <div id="sirio"></div>
+        <div class="final-text">Gracias, Sam</div>
+        <div class="end-text">FIN DEL JUEGO</div>
+    </div>
+
+    <script>
+        function selectChoice(scene, choice, isCorrect) {
+            // Hide all choices
+            const choices = document.querySelectorAll(`#scene${scene} .choice`);
+            choices.forEach(c => c.style.display = 'none');
+
+            // Show result
+            if (isCorrect) {
+                document.getElementById(`result${scene}-correct`).classList.add('show');
+                setTimeout(() => {
+                    document.querySelector(`#result${scene}-correct .continue-btn`).classList.add('show');
+                }, 1000);
+            } else {
+                document.getElementById(`result${scene}-wrong`).classList.add('show');
+                setTimeout(() => {
+                    document.querySelector(`#result${scene}-wrong .continue-btn`).classList.add('show');
+                }, 1000);
+            }
+        }
+
+        function nextScene(sceneNumber) {
+            // Hide current scene
+            document.querySelector('.scene.active').classList.remove('active');
+            
+            // Show next scene
+            setTimeout(() => {
+                document.getElementById(`scene${sceneNumber}`).classList.add('active');
+                window.scrollTo(0, 0);
+            }, 500);
+        }
+
+        function showFinalSky() {
+            const terminal = document.getElementById('terminal');
+            const starrySky = document.getElementById('starry-sky');
+            
+            // Fade out terminal
+            terminal.style.opacity = '0';
+            
+            setTimeout(() => {
+                terminal.style.display = 'none';
+                starrySky.classList.add('active');
+                createStars();
+            }, 2000);
+        }
+
+        function createStars() {
+            const sky = document.getElementById('starry-sky');
+            const starCount = 200;
+            
+            for (let i = 0; i < starCount; i++) {
+                const star = document.createElement('div');
+                star.className = 'star';
+                
+                const size = Math.random() * 3 + 1;
+                star.style.width = size + 'px';
+                star.style.height = size + 'px';
+                star.style.left = Math.random() * 100 + '%';
+                star.style.top = Math.random() * 100 + '%';
+                star.style.animationDelay = Math.random() * 3 + 's';
+                
+                sky.appendChild(star);
+            }
+        }
+    </script>
+</body>
+</html>
